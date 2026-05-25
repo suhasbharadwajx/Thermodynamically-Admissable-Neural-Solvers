@@ -61,9 +61,6 @@ def closure():
 
 opt_lbfgs.step(closure)
 
-# ==========================================
-# Reproduce Publication Figure 2
-# ==========================================
 x_eval = np.linspace(0, 1, 200)
 times = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
