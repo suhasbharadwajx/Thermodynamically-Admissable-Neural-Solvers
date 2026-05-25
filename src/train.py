@@ -61,23 +61,49 @@ def closure():
 
 opt_lbfgs.step(closure)
 
-# Evaluation
-x_test = np.linspace(0, 1, 200)
-t_test = np.linspace(0, 1, 200)
-Xg, Tg = np.meshgrid(x_test, t_test)
-XT = np.hstack([Xg.reshape(-1, 1), Tg.reshape(-1, 1)])
-XT_t = torch.tensor(XT, dtype=torch.float32, device=device)
+# ==========================================
+# Reproduce Publication Figure 2
+# ==========================================
+x_eval = np.linspace(0, 1, 200)
+times = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 
-with torch.no_grad():
-    pred = model(XT_t, amplitude_ratio).detach().cpu().numpy()
-    exact = exact_sol(XT)
+fig, axs = plt.subplots(2, 2, figsize=(14, 10), dpi=300)
+labels = [r'$u(x,t)$', r'$\phi(x,t)$']
+syms = ['u', r'\phi']
 
-norm = lambda v: np.linalg.norm(v)
-for idx, name in enumerate(['u', 'phi']):
-    err = norm(pred[:, idx] - exact[:, idx]) / (norm(exact[:, idx]) + 1e-14)
-    print(f"L2 Error {name}: {err:.5e}")
+for i, (field_idx, title) in enumerate(zip([0, 1], ['Displacement', 'Electric Potential'])):
+    for t in times:
+        X_slice = np.column_stack([x_eval, np.full_like(x_eval, t)])
+        X_tensor = torch.tensor(X_slice, dtype=torch.float32).to(device)
+        
+        with torch.no_grad():
+            pred = model(X_tensor, amplitude_ratio).detach().cpu().numpy()[:, field_idx]
+            exact = exact_sol(X_slice)[:, field_idx]
+            
+        axs[0, i].plot(x_eval, pred, label=f't={t}')
+        if t == 0.0:
+            axs[0, i].plot(x_eval, exact, 'k--', alpha=0.5, label='Exact')
+        
+        axs[1, i].semilogy(x_eval, np.abs(pred - exact) + 1e-16, label=f't={t}')
 
-# Plotting
-plt.figure(figsize=(10, 6))
+    axs[0, i].set_title(f"{title} ({syms[i]}(x,t))")
+    axs[0, i].set_xlabel("Position (x)")
+    axs[1, i].set_title(f"Absolute Error |{syms[i]}_{{pred}} - {syms[i]}_{{exact}}|")
+    axs[1, i].set_xlabel("Position (x)")
+
+for ax in axs.flat:
+    ax.grid(True, alpha=0.3)
+axs[0, 0].legend(fontsize=8)
+plt.tight_layout()
+plt.savefig('figure_2.png')
+plt.show()
+
+# Loss Trajectory Plot
+plt.figure(figsize=(10, 5), dpi=300)
 plt.semilogy(loss_history)
+plt.xlabel('Training Steps')
+plt.ylabel('Loss')
+plt.title('Optimization Dynamics')
+plt.grid(True, alpha=0.3)
 plt.savefig('loss_trajectory.png')
+plt.show()
