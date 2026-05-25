@@ -3,6 +3,10 @@ import torch.nn as nn
 import numpy as np
 
 class PiezoelectricPINN(nn.Module):
+    """
+    Feedforward Network with Absolute Hard Constraints.
+    Guarantees Dirichlet BCs and 2nd-Order Time ICs (Position & Velocity) analytically.
+    """
     def __init__(self, in_dim=2, out_dim=2, hidden=180, layers=8):
         super().__init__()
         modules = [nn.Linear(in_dim, hidden), nn.Tanh()]
@@ -11,6 +15,7 @@ class PiezoelectricPINN(nn.Module):
         modules.append(nn.Linear(hidden, out_dim))
         self.net = nn.Sequential(*modules)
         
+        # Xavier Uniform Initialization
         for m in self.modules():
             if isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
@@ -21,10 +26,13 @@ class PiezoelectricPINN(nn.Module):
         raw = self.net(x)
         u_raw, phi_raw = raw[:, 0:1], raw[:, 1:2]
 
-        bc_basis = x_c * (1.0 - x_c)
-        t2 = t_c ** 2
-        sx = torch.sin(np.pi * x_c)
+        # Exact Distance Functions
+        bc_basis = x_c * (1.0 - x_c)  
+        t2 = t_c ** 2                 
+        sx = torch.sin(np.pi * x_c)   
 
+        # Topologically Constrained Ansatz
         u = (bc_basis * t2 * u_raw) + sx
         phi = (bc_basis * t2 * phi_raw) + (amplitude_ratio * sx)
+
         return torch.cat([u, phi], dim=1)
