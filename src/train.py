@@ -33,7 +33,7 @@ def loss_fn_pde(Xd_batch):
     return (r_mech**2).mean() + (r_elec**2).mean()
 
 
-# Stage 1: Adam
+#Stage 1: Adam
 print("STAGE 1: Adam with Cosine Annealing (18,000 epochs)")
 opt_adam = torch.optim.Adam(model.parameters(), lr=2e-3, betas=(0.9, 0.999))
 scheduler = CosineAnnealingLR(opt_adam, T_max=18000, eta_min=1e-5)
@@ -56,7 +56,7 @@ for ep in range(18000):
 torch.cuda.empty_cache()
 gc.collect()
 
-# Stage 2: AdamW
+#Stage 2: AdamW
 print("\nSTAGE 2: AdamW Fine-Tuning (12,000 epochs)")
 opt_adamw = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=1e-5)
 
@@ -78,7 +78,7 @@ torch.cuda.empty_cache()
 gc.collect()
 
 
-# Stage 3: L-BFGS
+#Stage 3: L-BFGS
 print("\nSTAGE 3: L-BFGS (Deterministic Data)")
 Xd_lbfgs = Xd_cpu.to(device) 
 
